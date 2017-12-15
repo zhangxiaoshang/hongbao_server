@@ -1,8 +1,17 @@
 const {Wechaty, Room} = require('wechaty')
 const parseString = require('xml2js').parseString;
 
-var MongoClient = require('mongodb').MongoClient;
-var DB_CONN_STR = 'mongodb://localhost:27017/ele';
+var mongoose = require('mongoose')
+mongoose.connect('mongodb://localhost/ele', { useMongoClient: true })
+
+var db = mongoose.connection
+
+db.on('error', err => {
+    console.log('数据库连接失败', err)
+})
+db.on('open', () => {
+    console.log('数据库连接成功')
+})
 
 const bot = Wechaty.instance()
 
@@ -32,31 +41,15 @@ bot
     if(room){
         console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
     } else{
-    	// let urlReg = /&lt;url&gt;(.+)&lt;\/url&gt;/i
-    	// let url = (urlReg.exec(content)[1]).replace(/amp;/g, '').replace('hardware_id', 'from=singlemessage#hardware_id')
+        // 
     	let xml = convertXMLString (content)
-
     	parseString(xml, function (err, result) {
     		if (err) {
+                // xml转JSON失败
     			console.log(`Contact: ${contact.name()} Content: ${content}`)
     		} else {
-    			let appinfo = result.msg.appinfo[0]
-    			let appmsg = result.msg.appmsg[0]
-
-    			let data = {
-    				type: appinfo.appname[0] === '饿了么' ? 1 : 2,
-    				typename: appinfo.appname[0],
-    				title: appmsg.title[0],
-    				url: appmsg.url[0],
-                    contributor: contact.name(),
-                    from: 'personal',
-                    offer: 0,
-                    createtime: Date.now()
-                }
-    			// TODO 还要根据解析出来的数据再一次判断是否是红包分享
-
-                // 向数据库插入红包数据
-                saveHongbao(data)
+    			// TODO 还要根据解析出来的数据再一次判断是否是分享红包
+                insertData(contact.name(), result)
             }
         });
 
@@ -100,35 +93,31 @@ function convertXMLString (xml) {
 	return xml.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<br\/>/g, '')
 }
 
-/*****************************
-* 将红包数据存储到数据库 begin
-******************************/
-function insertData (data, db, callback) {  
-    //连接到表 site
-    var collection = db.collection('hongbao');
-    //插入数据
-    collection.insert(data, function(err, result) { 
-        if(err) {
-            console.log('Error:'+ err);
-            return;
+// 向数据库插入红包数据
+function insertData (contributor, data) {
+    let appinfo = data.msg.appinfo[0]
+    let appmsg = data.msg.appmsg[0]
+    if (db.readyState !== 1) {
+        console.log('ERROR: 没有连接数据库')
+        return
+    }
+    let EleTicket = require('./models/hongbao.js')
+    let ticket = new EleTicket({
+        type: appinfo.appname[0] === '饿了么' ? 1 : 2,
+        typename: appinfo.appname[0],
+        title: appmsg.title[0],
+        url: appmsg.url[0],
+        contributor: contributor,
+        from: 'personal',
+        offer: 0,
+        createtime: Date.now()
+    })
+    ticket.save((err) => {
+        if (err) {
+            console.log('保存失败', err)
         } else {
-            callback(result);
-        }     
-    });
+            console.log('保存成功')
+        }
+    })
 }
-
-function saveHongbao (data) {
-    MongoClient.connect(DB_CONN_STR, function(err, db) {
-        if (err) throw err
-        console.log("连接成功！");
-        insertData(data, db, function(result) {
-            console.log(result);
-            db.close();
-        });
-    });
-}
-
-/***************************
-* 将红包数据存储到数据库 end
-****************************/
 
