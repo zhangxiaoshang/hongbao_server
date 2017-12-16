@@ -2,7 +2,7 @@ const {Wechaty, Room} = require('wechaty')
 const parseString = require('xml2js').parseString;
 
 var mongoose = require('mongoose')
-mongoose.connect('mongodb://localhost/ele', { useMongoClient: true })
+mongoose.connect('mongodb://localhost/hongbao', { useMongoClient: true })
 
 var db = mongoose.connection
 
@@ -39,12 +39,12 @@ bot
         // console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
     } else{
         // 
-    	let xml = convertXMLString (content)
-    	parseString(xml, function (err, result) {
-    		if (err) {
+        let xml = convertXMLString (content)
+        parseString(xml, function (err, result) {
+          if (err) {
                 // xml转JSON失败
-    			console.log(`Contact: ${contact.name()} Content: ${content}`)
-    		} else {
+                console.log(`Contact: ${contact.name()} Content: ${content}`)
+            } else {
     			// TODO 还要根据解析出来的数据再一次判断是否是分享红包
                 insertData(contact.name(), result)
             }
@@ -98,23 +98,31 @@ function insertData (contributor, data) {
         console.log('ERROR: 没有连接数据库')
         return
     }
+    let type = appinfo.appname[0] === '饿了么' ? 1 : 2;
     let Ticket = require('./models/Ticket.js')
-    let ticket = new Ticket({
-        type: appinfo.appname[0] === '饿了么' ? 1 : 2,
-        typename: appinfo.appname[0],
-        title: appmsg.title[0],
-        url: appmsg.url[0],
-        contributor: contributor,
-        from: 'personal',
-        offer: 0,
-        createtime: Date.now()
-    })
-    ticket.save((err) => {
+    Ticket.count({ type: type}, (err, count) => {
         if (err) {
-            console.log('保存失败', err)
+            console.log('查询次数出错')
         } else {
-            console.log('保存成功')
-        }
+            let ticket = new Ticket({
+                no: count,
+                type: type,
+                typename: appinfo.appname[0],
+                title: appmsg.title[0],
+                url: appmsg.url[0],
+                contributor: contributor,
+                from: 'personal',
+                offer: 0
+            })
+            ticket.save((err) => {
+                if (err) {
+                    console.log('保存失败', err)
+                } else {
+                    console.log('保存成功')
+                }
+            })
+        } 
     })
+    
 }
 
