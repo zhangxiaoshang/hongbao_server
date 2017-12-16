@@ -4,6 +4,7 @@ mongoose.Promise = global.Promise
 var Schema = mongoose.Schema;
 // 模版
 var ticketSchema = new Schema({
+    no: Number,
 	type: Number,
 	typename: String,
 	title: String,

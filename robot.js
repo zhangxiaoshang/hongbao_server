@@ -6,9 +6,6 @@ mongoose.connect('mongodb://localhost/ele', { useMongoClient: true })
 
 var db = mongoose.connection
 
-db.on('error', err => {
-    console.log('数据库连接失败', err)
-})
 db.on('open', () => {
     console.log('数据库连接成功')
 })
@@ -39,7 +36,7 @@ bot
     const room = m.room()
 
     if(room){
-        console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
+        // console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
     } else{
         // 
     	let xml = convertXMLString (content)
@@ -101,8 +98,8 @@ function insertData (contributor, data) {
         console.log('ERROR: 没有连接数据库')
         return
     }
-    let EleTicket = require('./models/hongbao.js')
-    let ticket = new EleTicket({
+    let Ticket = require('./models/Ticket.js')
+    let ticket = new Ticket({
         type: appinfo.appname[0] === '饿了么' ? 1 : 2,
         typename: appinfo.appname[0],
         title: appmsg.title[0],

@@ -3,7 +3,7 @@
 var mongoose = require('mongoose')
 var TicketModel = require('../models/Ticket')
 
-mongoose.connect('mongodb://localhost/ele', { useMongoClient: true })
+mongoose.connect('mongodb://localhost/hongbao', { useMongoClient: true })
 var db = mongoose.connection
 
 class Ticket {
@@ -11,12 +11,14 @@ class Ticket {
 		console.log('this is Ticket controller')
 	}
 
-	show (success) {
+	show (page, success) {
 		if (db.readyState !== 1) {
 			console.log('数据库未连接')
 			return
 		} else {
-			TicketModel.find({}, 'type typename title contributor from offer createtime', { skip: 0, limit: 2 }, (err, docs) => {
+			let perpage = 10;
+			let skip = (page - 1) * perpage
+			TicketModel.find({}, 'no type typename title contributor from offer createtime', { skip: skip, limit: perpage }, (err, docs) => {
 				success(docs)
 			})
 		}		
