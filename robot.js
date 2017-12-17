@@ -35,23 +35,27 @@ bot
     const content = m.content()
     const room = m.room()
 
-    if(room){
-        // console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
-    } else{
-        // 
-        let xml = convertXMLString (content)
-        parseString(xml, function (err, result) {
-          if (err) {
+    let xml = convertXMLString (content)
+    parseString(xml, function (err, result) {
+      if (err) {
                 // xml转JSON失败
                 console.log(`Contact: ${contact.name()} Content: ${content}`)
             } else {
-    			// TODO 还要根据解析出来的数据再一次判断是否是分享红包
-                insertData(contact.name(), result)
+                // TODO 还要根据解析出来的数据再一次判断是否是分享红包
+                console.log(result)
+                if (result.msg && result.msg.appinfo && result.msg.appmsg) {
+                    insertData(room, contact.name(), result)
+                } else {
+                    console.log('不是红包')
+                }
             }
         });
 
-    	// console.log(`Contact: ${contact.name()} Content: ${content}`)
-    }
+    // if(room){
+    //     // console.log(`Room: ${room.topic()} Contact: ${contact.name()} Content: ${content}`)
+    // } else{
+    // 	// console.log(`Contact: ${contact.name()} Content: ${content}`)
+    // }
 
     if(m.self()){
         return
@@ -91,7 +95,7 @@ function convertXMLString (xml) {
 }
 
 // 向数据库插入红包数据
-function insertData (contributor, data) {
+function insertData (room, contributor, data) {
     let appinfo = data.msg.appinfo[0]
     let appmsg = data.msg.appmsg[0]
     if (db.readyState !== 1) {
@@ -111,7 +115,7 @@ function insertData (contributor, data) {
                 title: appmsg.title[0],
                 url: appmsg.url[0],
                 contributor: contributor,
-                from: 'personal',
+                from: room ? room.topic() : 'personal',
                 offer: 0
             })
             ticket.save((err) => {
